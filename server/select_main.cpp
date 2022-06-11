@@ -7,36 +7,38 @@
 
 #define SERV_PORT 6666
 
-sockaddr_in &init_server(sockaddr_in &serv_address);
+void init_server_address(sockaddr_in &serv_address);
 
-fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int maxi, int n_ready);
+fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int max_valid_index, int n_ready);
 
 int main() {
+    struct sockaddr_in serv_address{};
+    socklen_t cli_address_len;
 
-    struct sockaddr_in serv_address = init_server(serv_address);
+    init_server_address(serv_address);
 
     // AF_INET表示使用32位IP地址，SOCK_STREAM表示使用TCP连接
     int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
     // 将服务器套接字地址与套接字描述符联系起来
     bind(listen_fd, (struct sockaddr *) &serv_address, sizeof(serv_address));
     // 设置可监听的连接数量为1024
-    listen(listen_fd, 1024);
-
-    // 初始化最大文件描述符为监听描述符listen_fd
-    int maxfd = listen_fd;
+    listen(listen_fd, FD_SETSIZE);
 
     // FD_SETSIZE=1024,定义数组client来储存已连接描述符，最多1023个
     int client[FD_SETSIZE - 1];
     // 初始化client数组，将数组所有元素置为-1
-    for (int i = 0; i < FD_SETSIZE; i++)
-        client[i] = -1;
 
-    // 定义监听描述符集合all_set和发生事件描述符集合read_set
+    for (int cli_index = 0; cli_index < FD_SETSIZE; cli_index++) {
+        client[cli_index] = -1;
+    }
+
     fd_set all_set, read_set;
     // 初始化select监听文件描述符的集合
     FD_ZERO(&all_set);
     FD_SET(listen_fd, &all_set);
 
+    // 初始化最大文件描述符为监听描述符listen_fd
+    int maxfd = listen_fd;
     int max_valid_index = -1;
     while (1) {
         read_set = all_set;
@@ -45,15 +47,15 @@ int main() {
         if (n_ready < 0)
             perror("select error");
 
-        //判断listen_fd是否发生事件，若发生，则处理新客户端连接请求
+        // 判断listen_fd是否发生事件，若发生，则处理新客户端连接请求
         if (FD_ISSET(listen_fd, &read_set)) {
 
             struct sockaddr_in cli_address{};
-            socklen_t cli_address_len = sizeof(cli_address);
+            cli_address_len = sizeof(cli_address);
             // 与请求客户端建立连接
             int conn_fd = accept(listen_fd, (struct sockaddr *) &cli_address, &cli_address_len);
             char str;
-            printf("received from %s at port %d\n",
+            printf("received from %s at port % d\n",
                    inet_ntop(AF_INET, &cli_address.sin_addr.s_addr, &str, sizeof(str)),
                    ntohs(cli_address.sin_port));
 
@@ -80,10 +82,11 @@ int main() {
                 maxfd = conn_fd;
             }
             // 保证maxi永远是client数组中最后一个非-1的元素的位置
-            if (cli_index > max_valid_index)
+            if (cli_index > max_valid_index) {
                 max_valid_index = cli_index;
+            }
 
-            // 如果n_ready=1，即只有一个发生事件的描述符，在此条件下必为listen_fd，则返回循环位置，继续调用select监控;
+            // 如果n_ready=1，即只有一个发生事件的描述符，在此条件下必为listen_fd，则返回循环位置，继续调用select监控；
             // 否则继续向下执行
             --n_ready;
             if (n_ready == 0) {
@@ -95,28 +98,30 @@ int main() {
     }
 }
 
-fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int maxi, int n_ready) {
-    char buf[BUFSIZ];
+fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int max_valid_index, int n_ready) {
     // 找到client数组中发生事件的已连接描述符，并读取、处理数据
-    for (int i = 0; i <= maxi; i++) {
-        int sock_fd = client[i];
+    for (int cli_index = 0; cli_index <= max_valid_index; cli_index++) {
+        char buf[BUFSIZ];
+        int sock_fd = client[cli_index];
         // 已连接描述符失效，重新开始循环
-        if (sock_fd < 0)
+        if (sock_fd < 0) {
             continue;
+        }
 
         if (FD_ISSET(sock_fd, &read_set)) {
-            int n = read(sock_fd, buf, sizeof(buf));
+            int read_bytes = read(sock_fd, buf, sizeof(buf));
             // 当客户端关闭连接，服务端也关闭连接
-            if (n == 0) {
+            if (read_bytes == 0) {
                 close(sock_fd);
                 // 解除select对该已连接文件描述符的监控
                 FD_CLR(sock_fd, &all_set);
-                client[i] = -1;
-            } else if (n > 0) {
-                for (int j = 0; j < n; j++)
+                client[cli_index] = -1;
+            } else if (read_bytes > 0) {
+                for (int j = 0; j < read_bytes; j++) {
                     buf[j] = toupper(buf[j]);
+                }
                 sleep(2);
-                write(sock_fd, buf, n);
+                write(sock_fd, buf, read_bytes);
             }
 
             --n_ready;
@@ -129,12 +134,11 @@ fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int maxi
     return all_set;
 }
 
-sockaddr_in &init_server(sockaddr_in &serv_address) {
+void init_server_address(sockaddr_in &serv_address) {
     bzero(&serv_address, sizeof(serv_address));
     serv_address.sin_family = AF_INET;
     // 端口号，将无符号短整型转换为网络字节顺序
     serv_address.sin_port = htons(SERV_PORT);
     // 一个主机可能有多个网卡，所以是本机的任意IP地址
     serv_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    return serv_address;
 }
