@@ -12,7 +12,7 @@ sockaddr_in init_server_address();
 
 fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int max_valid_index, int n_ready);
 
-int main() {
+int select_main() {
     // AF_INET表示使用32位IP地址，SOCK_STREAM表示使用TCP连接
     int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
 
