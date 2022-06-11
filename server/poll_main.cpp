@@ -1,7 +1,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <cassert>
 #include <cstdio>
 #include <unistd.h>
 #include <cerrno>
