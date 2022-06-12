@@ -1,18 +1,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
-#include <cstring>
 #include <arpa/inet.h>
 #include <cctype>
 #include <iostream>
-
-#define SERV_PORT 8081
-
-sockaddr_in init_server_address();
+#include "../common/common.h"
 
 fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int max_valid_index, int n_ready);
 
-int select_main() {
+int select_server() {
     // AF_INET表示使用32位IP地址，SOCK_STREAM表示使用TCP连接
     int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -120,7 +116,7 @@ fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int max_
                 client[cli_index] = -1;
             } else if (read_bytes > 0) {
                 for (int j = 0; j < read_bytes; j++) {
-                    buf[j] = (char)toupper(buf[j]);
+                    buf[j] = (char) toupper(buf[j]);
                 }
                 sleep(2);
                 write(sock_fd, buf, read_bytes);
@@ -134,15 +130,4 @@ fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int max_
         }
     }
     return all_set;
-}
-
-sockaddr_in init_server_address() {
-    struct sockaddr_in serv_address{};
-    bzero(&serv_address, sizeof(serv_address));
-    serv_address.sin_family = AF_INET;
-    // 端口号，将无符号短整型转换为网络字节顺序
-    serv_address.sin_port = htons(SERV_PORT);
-    // 一个主机可能有多个网卡，所以是本机的任意IP地址
-    serv_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    return serv_address;
 }

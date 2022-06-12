@@ -1,12 +1,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <cstdio>
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
 #include <cstdlib>
+#include <iostream>
+#include "../common/common.h"
 
 #include <sys/poll.h>
 
@@ -38,23 +39,12 @@ int set_non_blocking(int fd) {
     return old_option;
 }
 
-int main(int argc, char *argv[]) {
-    if (argc <= 2) {
-        printf("usage: %s ip_address port_number\n", basename(argv[0]));
-        return 1;
-    }
-    const char *ip = argv[1];
-    int port = atoi(argv[2]);
+int poll_server() {
 
     int listen_fd;
-    struct sockaddr_in address{};
+    struct sockaddr_in address = init_server_address();
 
     client_data *users;
-
-    bzero(&address, sizeof(address));
-    address.sin_family = AF_INET;
-    inet_pton(AF_INET, ip, &address.sin_addr);
-    address.sin_port = htons(port);
 
     // 创建服务器的监听套接字
     if ((listen_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
@@ -64,20 +54,22 @@ int main(int argc, char *argv[]) {
         printf("create socket success...\n");
     }
 
+    // 绑定
     if (bind(listen_fd, (struct sockaddr *) &address, sizeof(address)) < 0) {
-
         perror("bind socket error...\n");
         exit(-1);
     } else {
         printf("bind socket success...\n");
     }
 
+    // 监听
     if (listen(listen_fd, 5) < 0) {
         perror("listen error...\n");
     } else {
         printf("start listen...\n");
     }
 
+    // 分配数据缓冲区
     if ((users = (client_data *) malloc(sizeof(client_data) * FD_LIMIT)) == nullptr) {
         perror("malloc client_data error...");
     } else {

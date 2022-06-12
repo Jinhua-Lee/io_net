@@ -3,6 +3,8 @@ project(io_net)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(io_net main.cpp)
-#add_executable(server server/select_main.cpp)
-add_executable(client client/client_main.cpp)
+# 服务端运行主函数
+add_executable(server server/server_main.cpp common/common.cpp)
+
+# 客户端运行主函数
+add_executable(client client/client_main.cpp common/common.cpp)
