@@ -71,14 +71,14 @@ int select_server() {
 }
 
 int conn_to_cli(int listen_fd) {
-    struct sockaddr_in cli_address{};
-    socklen_t cli_address_len = sizeof(cli_address);
+    struct sockaddr_in cli_addr{};
+    socklen_t cli_address_len = sizeof(cli_addr);
     // 与请求客户端建立连接
-    int conn_fd = accept(listen_fd, (struct sockaddr *) &cli_address, &cli_address_len);
+    int conn_fd = accept(listen_fd, (struct sockaddr *) &cli_addr, &cli_address_len);
     char str;
-    printf("received from %s at port % d\n",
-           inet_ntop(AF_INET, &cli_address.sin_addr, &str, sizeof(str)),
-           ntohs(cli_address.sin_port));
+    printf("received from %s at port %d\n",
+           inet_ntoa(cli_addr.sin_addr),
+           ntohs(cli_addr.sin_port));
     return conn_fd;
 }
 
