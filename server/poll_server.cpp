@@ -24,7 +24,7 @@ typedef struct client_data {
     char buf[BUFFER_SIZE];
 } client_data;
 
-void init_fd_struct_arr(int listen_fd);
+void init_fd_struct_arr(int listen_fd, pollfd *fds, int length);
 
 void handle_poll_in(client_data *users, pollfd *fds, int &user_counter, int &user_index);
 
@@ -76,22 +76,24 @@ int poll_server() {
         printf("malloc client_data success...");
     }
 
-    struct pollfd fds[6];
-    init_fd_struct_arr(listen_fd);
+    // 初始化一个poll的结构体数组
+    int fd_len = USER_LIMIT + 1;
+    struct pollfd fds[USER_LIMIT + 1];
+    init_fd_struct_arr(listen_fd, fds, fd_len);
 
     int user_counter = 0;
     while (true) {
         // 准备轮询的套接字文件描述符
         int ret_val = poll(fds,
-                   user_counter + 1,
+                           user_counter + 1,
                 // poll 永远等待。poll() 只有在一个描述符就绪时返回，或者在调用进程捕捉到信号时返回
-                   -1);
+                           -1);
         if (ret_val < 0) {
             std::cout << "poll failure." << std::endl;
             break;
         }
 
-        // poll模型的本质就是轮询, 在pull返回时，轮询所有的文件描述符, 查找到有事情请求的那个文件
+        // poll模型的本质就是轮询, 在poll()返回时，轮询所有的fd, 查找到有事件请求的fd
         for (int user_index = 0; user_index < user_counter + 1; ++user_index) {
             // 监听的是服务器套接字, 此时如果有数据可读，说明有客户端请求链接
             if ((fds[user_index].fd == listen_fd)
@@ -195,10 +197,10 @@ void handle_poll_in(client_data *users, pollfd *fds, int &user_counter, int &use
     }
 }
 
-void init_fd_struct_arr(int listen_fd) {
-    struct pollfd fds[USER_LIMIT + 1];
+void init_fd_struct_arr(int listen_fd, pollfd *fds, int length) {
+
     // 初始化poll结构
-    for (int i = 1; i <= USER_LIMIT; ++i) {
+    for (int i = 1; i <= length; ++i) {
         fds[i].fd = -1;
         fds[i].events = 0;
     }
