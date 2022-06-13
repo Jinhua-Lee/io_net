@@ -6,6 +6,10 @@
 #include <iostream>
 #include "../common/common.h"
 
+int conn_to_cli(int listen_fd);
+
+void handle_cli_fd_arr(int *cli_fd_arr, int conn_fd, fd_set &all_set, int &max_fd, int &max_valid_index);
+
 fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int max_valid_index, int n_ready);
 
 int select_server() {
@@ -48,41 +52,11 @@ int select_server() {
         // 判断listen_fd是否发生事件，若发生，则处理新客户端连接请求
         if (FD_ISSET(listen_fd, &read_set)) {
 
-            struct sockaddr_in cli_address{};
-            socklen_t cli_address_len = sizeof(cli_address);
-            // 与请求客户端建立连接
-            int conn_fd = accept(listen_fd, (struct sockaddr *) &cli_address, &cli_address_len);
-            char str;
-            printf("received from %s at port % d\n",
-                   inet_ntop(AF_INET, &cli_address.sin_addr, &str, sizeof(str)),
-                   ntohs(cli_address.sin_port));
+            // 连接到客户端，拿到与客户端对应的fd
+            int conn_fd = conn_to_cli(listen_fd);
 
-            int cli_index;
-            // 将conn_fd赋值给client数组中第一个为-1的元素位置
-            for (cli_index = 0; cli_index < FD_SETSIZE; cli_index++) {
-                if (cli_fd_arr[cli_index] < 0) {
-                    cli_fd_arr[cli_index] = conn_fd;
-                    break;
-                }
-            }
-
-            // 判断select监听的文件描述符的个数是否超过上限
-            // 减1的原因是要考虑监听描述符listen_fd也属于select监控
-            if (cli_index == FD_SETSIZE - 1) {
-                fputs("too many clients\n", stderr);
-                exit(1);
-            }
-
-            // 向监控的文件描述符集合all_set中添加新的描述符conn_fd
-            FD_SET(conn_fd, &all_set);
-            if (conn_fd > max_fd) {
-                // 更新最大文件描述符值
-                max_fd = conn_fd;
-            }
-            // 保证maxi永远是client数组中最后一个非-1的元素的位置
-            if (cli_index > max_valid_index) {
-                max_valid_index = cli_index;
-            }
+            // 客户端fd数组的一些处理
+            handle_cli_fd_arr(cli_fd_arr, conn_fd, all_set, max_fd, max_valid_index);
 
             // 如果n_ready=1，即只有一个发生事件的描述符，在此条件下必为listen_fd，则返回循环位置，继续调用select监控；
             // 否则继续向下执行
@@ -93,6 +67,47 @@ int select_server() {
         }
 
         all_set = read_and_handle(cli_fd_arr, all_set, read_set, max_valid_index, n_ready);
+    }
+}
+
+int conn_to_cli(int listen_fd) {
+    struct sockaddr_in cli_address{};
+    socklen_t cli_address_len = sizeof(cli_address);
+    // 与请求客户端建立连接
+    int conn_fd = accept(listen_fd, (struct sockaddr *) &cli_address, &cli_address_len);
+    char str;
+    printf("received from %s at port % d\n",
+           inet_ntop(AF_INET, &cli_address.sin_addr, &str, sizeof(str)),
+           ntohs(cli_address.sin_port));
+    return conn_fd;
+}
+
+void handle_cli_fd_arr(int *cli_fd_arr, int conn_fd, fd_set &all_set, int &max_fd, int &max_valid_index) {
+    int cli_index;
+    // 将conn_fd赋值给client数组中第一个为-1的元素位置
+    for (cli_index = 0; cli_index < FD_SETSIZE; cli_index++) {
+        if (cli_fd_arr[cli_index] < 0) {
+            cli_fd_arr[cli_index] = conn_fd;
+            break;
+        }
+    }
+
+    // 判断select监听的文件描述符的个数是否超过上限
+    // 减1的原因是要考虑监听描述符listen_fd也属于select监控
+    if (cli_index == FD_SETSIZE - 1) {
+        fputs("too many clients\n", stderr);
+        exit(1);
+    }
+
+    // 向监控的文件描述符集合all_set中添加新的描述符conn_fd
+    FD_SET(conn_fd, &all_set);
+    if (conn_fd > max_fd) {
+        // 更新最大文件描述符值
+        max_fd = conn_fd;
+    }
+    // 保证maxi永远是client数组中最后一个非-1的元素的位置
+    if (cli_index > max_valid_index) {
+        max_valid_index = cli_index;
     }
 }
 
