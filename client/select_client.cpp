@@ -2,7 +2,16 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <cstdlib>
+#include <ctime>
 #include "../common/common.h"
+
+void consoleInput(int conn_fd);
+
+// random length and random content.
+void random_input_to_server(int conn_fd);
+
+void random_fill(char *buf);
 
 int select_client() {
 
@@ -17,6 +26,15 @@ int select_client() {
         return fail;
     }
 
+    // replace by random input, in order to test concurrency input.
+//    consoleInput(conn_fd);
+
+    random_input_to_server(conn_fd);
+
+    return 0;
+}
+
+void consoleInput(int conn_fd) {
     char buf[BUFSIZ];
     do {
         fgets(buf, sizeof(buf), stdin);
@@ -25,6 +43,20 @@ int select_client() {
         write(STDOUT_FILENO, buf, n_bytes);
         // 接收键盘输入，直到收到回车符结束
     } while (buf[0] != '\n');
+}
 
-    return 0;
+void random_input_to_server(int conn_fd) {
+    char buf[BUFSIZ];
+    random_fill(buf);
+    write(conn_fd, buf, strlen(buf));
+}
+
+void random_fill(char *buf) {
+    srand(time(nullptr));
+    int len = rand() % 10;
+    for (int i = 0; i < len; ++i) {
+        srand(time(nullptr));
+        // lower case letter.
+        buf[i] = rand() % 26 + 97;
+    }
 }
