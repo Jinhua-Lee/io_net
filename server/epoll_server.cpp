@@ -55,9 +55,10 @@ int epoll_server() {
     char buf[1024] = {0};
     while (true) {
         int n_ready = epoll_wait(epoll_fd,
-                             &*events.begin(),
-                             static_cast<int>(events.size()),
-                             -1);
+                                 &*events.begin(),
+                                 static_cast<int>(events.size()),
+                                 -1);
+        std::cout << "[epoll_wait] n_ready = " << n_ready << std::endl;
         if (n_ready == -1) {
             perror("epoll_wait");
             return -3;
@@ -79,11 +80,11 @@ int epoll_server() {
                     perror("accept");
                     return -4;
                 }
-                char strip[64] = {0};
+                char ip_str[64] = {0};
                 char *ip = inet_ntoa(conn_addr.sin_addr);
-                strcpy(strip, ip);
-                printf("client connect, conn_fd:%d,ip:%s, port:%d, count:%d\n",
-                       conn_fd, strip, ntohs(conn_addr.sin_port),
+                strcpy(ip_str, ip);
+                printf("[accept] client connect, conn_fd:%d,ip:%s, port:%d, count:%d\n",
+                       conn_fd, ip_str, ntohs(conn_addr.sin_port),
                        ++count);
 
                 clients.push_back(conn_fd);
@@ -95,6 +96,7 @@ int epoll_server() {
                 event.data.fd = conn_fd;
                 event.events = EPOLLIN | EPOLLET;
                 epoll_ctl(epoll_fd, EPOLL_CTL_ADD, conn_fd, &event);
+                std::cout << "[epoll_ctl_add] add conn_fd = " << conn_fd << " to the epoll ctl." << std::endl;
 
             } else if (events[ready_index].events & EPOLLIN) {
                 // 写入事件
@@ -108,16 +110,18 @@ int epoll_server() {
                     perror("read");
                     return -5;
                 } else if (read_bytes == 0) {
-                    printf("client close remove:%d, count:%d\n", conn_fd, --count);
+                    printf("[read] client close remove conn_fd = %d, remaining count = %d\n", conn_fd, --count);
                     close(conn_fd);
                     event = events[ready_index];
                     epoll_ctl(epoll_fd, EPOLL_CTL_DEL, conn_fd, &event);
+                    std::cout << "[epoll_ctl_del] delete conn_fd = " << conn_fd << " from the epoll ctl." << std::endl;
                     clients.erase(
                             std::remove(clients.begin(), clients.end(), conn_fd),
                             clients.end()
                     );
                 }
                 write(conn_fd, buf, sizeof(buf));
+                std::cout << "[write] write buf = " << buf << " to conn_fd = " << conn_fd << std::endl;
                 memset(buf, 0, sizeof(buf));
             }
         }

@@ -89,9 +89,10 @@ int poll_server() {
                 // poll 永远等待。poll() 只有在一个描述符就绪时返回，或者在调用进程捕捉到信号时返回
                            -1);
         if (ret_val < 0) {
-            std::cout << "poll failure." << std::endl;
+            std::cout << "[poll] poll failure." << std::endl;
             break;
         }
+        std::cout << "[poll] poll ret_val = " << ret_val << std::endl;
 
         // poll模型的本质就是轮询, 在poll()返回时，轮询所有的fd, 查找到有事件请求的fd
         for (int user_index = 0; user_index < user_counter + 1; ++user_index) {
@@ -109,7 +110,7 @@ int poll_server() {
                 }
                 if (user_counter >= USER_LIMIT) {
                     const char *info = "too many users\n";
-                    printf("%s", info);
+                    std::cout << "[accept]"<< info << std::endl;
                     send(conn_fd, info, strlen(info), 0);
                     close(conn_fd);
                     continue;
@@ -151,29 +152,30 @@ int poll_server() {
 }
 
 void handle_poll_err(const pollfd *fds, int user_index) {
-    printf("get an error from %d\n", fds[user_index].fd);
+    printf("[handle_poll_err] get an error from %d\n", fds[user_index].fd);
     char errors[100];
     memset(errors, '\0', 100);
     socklen_t length = sizeof(errors);
     if (getsockopt(fds[user_index].fd, SOL_SOCKET, SO_ERROR, &errors, &length) < 0) {
-        printf("get socket option failed\n");
+        std::cout << "[handle_poll_err] get socket option failed." << std::endl;
     }
 }
 
 void handle_poll_rdh_up(client_data *users, pollfd *fds, int &user_counter, int &user_index) {
     users[fds[user_index].fd] = users[fds[user_counter].fd];
     close(fds[user_index].fd);
+    std::cout << "[handle_poll_rdh_up] a client fd = " << fds[user_index].fd << " left." << std::endl;
     fds[user_index] = fds[user_counter];
     user_index--;
     user_counter--;
-    printf("a client left\n");
+    printf("[handle_poll_rdh_up] a client left\n");
 }
 
 void handle_poll_in(client_data *users, pollfd *fds, int &user_counter, int &user_index) {
     int conn_fd = fds[user_index].fd;
     memset(users[conn_fd].buf, '\0', BUFFER_SIZE);
     ssize_t ret = recv(conn_fd, users[conn_fd].buf, BUFFER_SIZE - 1, 0);
-    printf("get %zd bytes of client data %s from %d\n", ret, users[conn_fd].buf, conn_fd);
+    printf("[handle_poll_in] get %zd bytes of client data %s from %d\n", ret, users[conn_fd].buf, conn_fd);
     if (ret < 0) {
         if (errno != EAGAIN) {
             close(conn_fd);
@@ -183,7 +185,7 @@ void handle_poll_in(client_data *users, pollfd *fds, int &user_counter, int &use
             user_counter--;
         }
     } else if (ret == 0) {
-        printf("code should not come to here\n");
+        std::cout << "[handle_poll_in] code should not come to here." << std::endl;
     } else {
         for (int j = 1; j <= user_counter; ++j) {
             if (fds[j].fd == conn_fd) {

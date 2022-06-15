@@ -25,4 +25,6 @@ int select_client() {
         write(STDOUT_FILENO, buf, n_bytes);
         // 接收键盘输入，直到收到回车符结束
     } while (buf[0] != '\n');
+
+    return 0;
 }
