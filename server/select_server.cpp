@@ -12,6 +12,7 @@ void handle_cli_fd_arr(int *cli_fd_arr, int conn_fd, fd_set &all_set, int &max_f
 
 fd_set &read_and_handle(int *client, fd_set &all_set, fd_set &read_set, int max_valid_index, int n_ready);
 
+[[noreturn]]
 int select_server() {
     // AF_INET表示使用32位IP地址，SOCK_STREAM表示使用TCP连接
     int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -44,6 +45,7 @@ int select_server() {
     while (true) {
         read_set = all_set;
         // select只监听可读事件，且为永久阻塞直到有事件发生
+        // 用户态 -> 内核态 -> 用户态，复制read_set进行判断的消耗。
         int n_ready = select(max_fd + 1, &read_set, nullptr, nullptr, nullptr);
         if (n_ready < 0) {
             perror("select error");
@@ -75,7 +77,6 @@ int conn_to_cli(int listen_fd) {
     socklen_t cli_address_len = sizeof(cli_addr);
     // 与请求客户端建立连接
     int conn_fd = accept(listen_fd, (struct sockaddr *) &cli_addr, &cli_address_len);
-    char str;
     printf("received from %s at port %d\n",
            inet_ntoa(cli_addr.sin_addr),
            ntohs(cli_addr.sin_port));
