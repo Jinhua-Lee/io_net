@@ -6,7 +6,7 @@
 #include <ctime>
 #include "../common/common.h"
 
-void consoleInput(int conn_fd);
+void console_input(int conn_fd);
 
 // random length and random content.
 void random_input_to_server(int conn_fd);
@@ -27,14 +27,14 @@ int select_client() {
     }
 
     // replace by random input, in order to test concurrency input.
-//    consoleInput(conn_fd);
+//    console_input(conn_fd);
 
     random_input_to_server(conn_fd);
 
     return 0;
 }
 
-void consoleInput(int conn_fd) {
+void console_input(int conn_fd) {
     char buf[BUFSIZ];
     do {
         fgets(buf, sizeof(buf), stdin);
