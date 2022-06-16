@@ -1,5 +1,6 @@
 #include <ctime>
 #include <cstdio>
+#include <sys/time.h>
 #include "common.h"
 
 sockaddr_in init_server_address() {
@@ -13,17 +14,23 @@ sockaddr_in init_server_address() {
     return serv_address;
 }
 
-char* now_time() {
+char *now_time() {
     // static variable exists through all the lifetime.
     // without static, this variable will be cleaned up after function end, and return value will be null.
     // to solve this problem we can also use malloc(c) or new(c++) to allocate memory in heap.
-    static char time_str[40];
+    static char time_str[50];
     time_t t;
     tm *now;
     time(&t);
     now = localtime(&t);
-    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", now);
 
+    timeval tv{};
+    gettimeofday(&tv, nullptr);
+    snprintf(time_str, sizeof(time_str), "%04d-%02d-%02d %02d:%02d:%02d.%03ld",
+             now->tm_year + 1900, now->tm_mon + 1, now->tm_mday,
+             now->tm_hour, now->tm_min, now->tm_sec,
+             tv.tv_usec % 1000
+    );
     return &time_str[0];
 }
 
