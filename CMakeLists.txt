@@ -11,5 +11,8 @@ add_executable(client client/client_main.cpp common/common.cpp)
 
 # 测试相关运行主函数
 add_executable(test test/test_main.cpp)
+
+# solve linking problems.
 find_package(Threads REQUIRED)
 target_link_libraries(test Threads::Threads)
+target_link_libraries(client Threads::Threads)

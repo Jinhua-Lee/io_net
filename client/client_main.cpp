@@ -4,6 +4,6 @@
 int main() {
     // similar to server_main
 
-    select_client();
+    select_clients_concurrency();
 //    poll_client();
 }

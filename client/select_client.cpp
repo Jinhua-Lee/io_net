@@ -4,34 +4,73 @@
 #include <sys/socket.h>
 #include <cstdlib>
 #include <ctime>
+#include <pthread.h>
+#include <iostream>
 #include "../common/common.h"
+
+// concurrency visit server, this is client num.
+#define CLI_NUM 10000
+
+pthread_mutex_t mut;
 
 void console_input(int conn_fd);
 
-// random length and random content.
+// we define random length and random content.
 void random_input_to_server(int conn_fd);
 
 void random_fill(char *buf);
 
-int select_client() {
+void *select_client(void *args);
+
+void print_conn(const void *args);
+void print_send(const void *args);
+
+void select_clients_concurrency() {
+
+    // create thread in loop
+    for (int i = 0; i < CLI_NUM; ++i) {
+        pthread_t p_th;
+        pthread_create(&p_th, nullptr, select_client, &i);
+    }
+
+    getchar();
+}
+
+void *select_client(void *args) {
 
     // 初始化IP
     struct sockaddr_in server_address = init_server_address();
     // 创建客户端的套接字FD
     int conn_fd = socket(AF_INET, SOCK_STREAM, 0);
 
+//    pthread_mutex_lock(&mut);
+
     // 连接到服务器
     int fail = connect(conn_fd, (struct sockaddr *) &server_address, sizeof(server_address));
+    print_conn(args);
     if (fail) {
-        return fail;
+        return nullptr;
     }
 
-    // replace by random input, in order to test concurrency input.
+    // replaced by random input, in order to test concurrency visit.
 //    console_input(conn_fd);
-
     random_input_to_server(conn_fd);
+    print_send(args);
 
-    return 0;
+//    pthread_mutex_unlock(&mut);
+    return nullptr;
+}
+
+void print_conn(const void *args) {
+    std::cout << "[client connect] thread = " << *(int *)args << ", time = ";
+    print_time(now_time());
+    std::cout << std::endl;
+}
+
+void print_send(const void *args) {
+    std::cout << "[client send] thread = " << *(int *)args << ", time = ";
+    print_time(now_time());
+    std::cout << std::endl;
 }
 
 void console_input(int conn_fd) {

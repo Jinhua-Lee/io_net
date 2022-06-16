@@ -5,9 +5,9 @@
 int main() {
     // debug operation must be in the project main.cpp, so we invoke select_server() here.
 
-//    select_server();
+    select_server();
 //    poll_server();
-    epoll_server();
+//    epoll_server();
 
     // as for client_main(), we can debug use telnet instead.
 }
