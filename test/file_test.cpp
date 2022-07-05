@@ -3,10 +3,11 @@
 //
 
 void test_file_open() {
-    FILE *logFile = fopen("/home/jinhua/jmeter.log", "r");
+    FILE *logFile = fopen("/home/jinhua/赤壁赋.txt", "r");
 
-    char *line = new char[40];
-    char *str = fgets(line, 40, logFile);
-
-    getchar();
+    char *line = new char[240];
+    const char *str;
+    while ((str = fgets(line, 240, logFile) )!= nullptr) {
+        std::cout << str;
+    }
 }
