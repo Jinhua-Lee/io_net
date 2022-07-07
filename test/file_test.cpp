@@ -2,6 +2,8 @@
 // Created by jinhua on 2022/6/29.
 //
 #include <fcntl.h>
+#include <sys/mman.h>
+#include "mmap/parallel_write_test.cpp"
 
 const char *file_name = "/home/jinhua/赤壁赋.txt";
 
@@ -62,6 +64,7 @@ void test_direct_io() {
 
 /**
  * 3. 内存映射
+ * 用户操作制定内存，OS会负责将该段内存内容映射到文件中
  */
 void test_mmap() {
 
