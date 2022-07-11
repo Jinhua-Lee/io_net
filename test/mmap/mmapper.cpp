@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstring> // for memcpy()
+#include <utility>
 #include <fcntl.h> // for open()
 #include <sys/mman.h>
 #include <unistd.h> // for close()
@@ -9,7 +10,7 @@
 using namespace mem;
 
 Writer::Writer(size_t size_lim, std::string file_path)
-        : size_lim_(size_lim), file_path_(file_path), cur_pos_(0), pending_(0) {
+        : size_lim_(size_lim), file_path_(std::move(file_path)), cur_pos_(0), pending_(0) {
     int fd = open(file_path_.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
     if (fd == -1) {
         printf("Open file %s failed.\n", file_path_.c_str());
@@ -74,9 +75,9 @@ void Writer::write_data(const char *data, size_t len) {
 }
 
 void Writer::remap(size_t new_size) {
-    // should be very time consuming, try to avoid
+    // should be very time-consuming, try to avoid
 
-    // wait for all pending memcpy
+    // wait for all pending memcpy()
     while (pending_ != 0) {
     }
 
@@ -103,5 +104,5 @@ void Writer::remap(size_t new_size) {
     }
     size_lim_ = new_size;
 
-    printf("REMAP: extend limit to %08x\n", new_size);
+    printf("REMAP: extend limit to %08zx\n", new_size);
 }

@@ -5,7 +5,7 @@
 #include <sys/mman.h>
 #include "mmap/parallel_write_test.cpp"
 
-const char *file_name = "/home/jinhua/赤壁赋.txt";
+const char *file_name = "/home/jinhua/io_test/赤壁赋.txt";
 
 /**
  * 1. 缓冲IO <p>&emsp;

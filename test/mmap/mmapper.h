@@ -29,7 +29,7 @@ namespace mem {
 
         // ...原子操作相关，保证线程安全性
         // for remap when overflow
-        std::atomic_flag spinlock_;
+        std::atomic_flag spinlock_{};
         std::atomic<size_t> pending_;
 
         // 重新映射一个内存大小

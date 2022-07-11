@@ -11,7 +11,7 @@
 // 默认1024个字节
 #define FILE_SIZE_LIM 1<<10
 
-int main(int argc, const char *argv[]) {
+int mmap_main(int argc, const char *argv[]) {
     if (argc != 2) {
         printf("Usage: %s <file_to_write>\n", argv[0]);
         exit(0);
